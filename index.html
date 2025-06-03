@@ -1,101 +1,66 @@
-
 <!DOCTYPE html>
 <html lang="fa">
 <head>
   <meta charset="UTF-8">
-  <title>تحلیل EV با پروکسی (سازگار با GitHub/Netlify)</title>
+  <title>تحلیل EV با SportsGameOdds + پروکسی</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body {
-      direction: rtl;
-      font-family: Tahoma, sans-serif;
-      background-color: #f8f8f8;
-      padding: 20px;
-    }
-    .container {
-      max-width: 700px;
-      margin: auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    h2 {
-      text-align: center;
-    }
-    label, input, select, button {
-      font-size: 16px;
-      width: 100%;
-      margin-top: 10px;
-      padding: 10px;
-    }
-    .match {
-      background: #eef;
-      margin: 10px 0;
-      padding: 10px;
-      border-radius: 10px;
-    }
-    .value {
-      background: #d4fcd4;
-      padding: 5px;
-      margin-top: 5px;
-      border: 1px dashed green;
-    }
+    body { direction: rtl; font-family: Tahoma; background:#f8f8f8; padding:20px; }
+    .container { max-width:700px; margin:auto; background:#fff; padding:20px; border-radius:12px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
+    h2 { text-align:center; }
+    label, input, select, button { font-size:16px; width:100%; margin-top:10px; padding:10px; }
+    .match { background:#eef; margin:10px 0; padding:10px; border-radius:10px; }
+    .value { background:#d4fcd4; padding:5px; margin-top:5px; border:1px dashed green; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>🎯 تحلیل EV فوتبال با استفاده از پروکسی</h2>
-
-    <label>احتمال برد تخمینی شما (مثلاً 0.55):</label>
-    <input type="number" id="probEstimate" step="0.01" min="0" max="1" value="0.55">
-
-    <button onclick="analyze()">تحلیل</button>
-
-    <div id="results"></div>
-  </div>
-
-  <script>
-    const API_KEY = "kitej85172@besibali.com";
-    const BASE_URL = `https://api.the-odds-api.com/v4/sports/soccer_epl/odds/?regions=eu&markets=h2h&apiKey=${API_KEY}`;
-
-    function analyze() {
-      const userProb = parseFloat(document.getElementById('probEstimate').value);
-      if (isNaN(userProb) || userProb <= 0 || userProb >= 1) {
-        document.getElementById("results").innerHTML = "❌ احتمال برد معتبر وارد کنید.";
-        return;
-      }
-
-      const encoded = encodeURIComponent(BASE_URL);
-      fetch(`https://api.allorigins.win/get?url=${encoded}`)
-        .then(res => res.json())
-        .then(wrapped => {
-          const data = JSON.parse(wrapped.contents);
-          let html = "";
-
-          data.forEach(match => {
-            const teams = match.teams.join(" vs ");
-            const outcomes = match.bookmakers[0]?.markets[0]?.outcomes || [];
-            html += `<div class='match'><b>${teams}</b><br>`;
-            outcomes.forEach(outcome => {
-              const odds = outcome.price;
-              const ev = (userProb * odds) - (1 - userProb);
-              html += `${outcome.name}: ضریب ${odds}`;
-              if (ev > 0) {
-                html += ` <div class='value'>✅ EV مثبت: ${ev.toFixed(2)}</div>`;
-              } else {
-                html += ` <div>EV: ${ev.toFixed(2)}</div>`;
-              }
-            });
-            html += "</div>";
-          });
-
-          document.getElementById("results").innerHTML = html;
-        })
-        .catch(err => {
-          document.getElementById("results").innerHTML = "❌ خطا در اتصال به API از طریق پروکسی.";
-        });
+<div class="container">
+  <h2>📊 تحلیل EV با API جدید و پروکسی</h2>
+  <label>ورزش را انتخاب کنید:</label>
+  <select id="sport">
+    <option value="soccer">فوتبال</option>
+    <option value="tennis">تنیس</option>
+    <option value="basketball">بسکتبال</option>
+    <option value="mma">MMA</option>
+  </select>
+  <label>احتمال برد تخمینی شما (مثلاً 0.55):</label>
+  <input type="number" id="probEstimate" step="0.01" min="0" max="1" value="0.55">
+  <button onclick="analyze()">تحلیل</button>
+  <div id="results"></div>
+</div>
+<script>
+  function analyze() {
+    const sport = document.getElementById("sport").value;
+    const prob = parseFloat(document.getElementById("probEstimate").value);
+    if (isNaN(prob) || prob<=0 || prob>=1) {
+      document.getElementById("results").innerHTML = "❌ احتمال معتبر وارد کنید.";
+      return;
     }
-  </script>
+
+    // برداشتن داده از SportsGameOdds API (مثال)
+    const url = `https://sportsgameodds.com/api/${sport}/odds`;
+
+    fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`)
+      .then(r => r.json())
+      .then(w => {
+        const data = JSON.parse(w.contents);
+        let html = "";
+        data.matches?.forEach(m => {
+          const teams = m.home+" vs "+m.away;
+          html += `<div class="match"><b>${teams}</b><br>`;
+          m.odds.forEach(o => {
+            const ev = (prob * o.price) - (1 - prob);
+            html += `${o.name}: ضریب ${o.price}`;
+            html += ev>0 ? `<div class="value">✅ EV مثبت: ${ev.toFixed(2)}</div>` : `<div>EV: ${ev.toFixed(2)}</div>`;
+          });
+          html += "</div>";
+        });
+        document.getElementById("results").innerHTML = html || "⚠️ داده‌ای یافت نشد.";
+      })
+      .catch(e => {
+        document.getElementById("results").innerHTML = "❌ خطای اتصال یا داده.";
+      });
+  }
+</script>
 </body>
 </html>
