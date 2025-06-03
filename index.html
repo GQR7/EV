@@ -3,7 +3,7 @@
 <html lang="fa">
 <head>
   <meta charset="UTF-8">
-  <title>تحلیل خودکار EV (فوتبال + تنیس)</title>
+  <title>تحلیل EV با پروکسی (سازگار با GitHub/Netlify)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
@@ -45,38 +45,34 @@
 </head>
 <body>
   <div class="container">
-    <h2>📊 تحلیل خودکار EV - فوتبال و تنیس</h2>
+    <h2>🎯 تحلیل EV فوتبال با استفاده از پروکسی</h2>
 
-    <label>انتخاب ورزش:</label>
-    <select id="sport">
-      <option value="soccer_epl">فوتبال (Premier League)</option>
-      <option value="tennis_atp_french_open">تنیس (ATP French Open)</option>
-    </select>
-
-    <label>احتمال برد تخمینی شما برای هر بازیکن/تیم (مثلاً 0.55):</label>
+    <label>احتمال برد تخمینی شما (مثلاً 0.55):</label>
     <input type="number" id="probEstimate" step="0.01" min="0" max="1" value="0.55">
 
-    <button onclick="analyze()">تحلیل EV</button>
+    <button onclick="analyze()">تحلیل</button>
 
     <div id="results"></div>
   </div>
 
   <script>
     const API_KEY = "kitej85172@besibali.com";
+    const BASE_URL = `https://api.the-odds-api.com/v4/sports/soccer_epl/odds/?regions=eu&markets=h2h&apiKey=${API_KEY}`;
 
     function analyze() {
       const userProb = parseFloat(document.getElementById('probEstimate').value);
-      const selectedSport = document.getElementById('sport').value;
-
       if (isNaN(userProb) || userProb <= 0 || userProb >= 1) {
-        document.getElementById("results").innerHTML = "❌ لطفاً احتمال برد معتبر وارد کنید.";
+        document.getElementById("results").innerHTML = "❌ احتمال برد معتبر وارد کنید.";
         return;
       }
 
-      fetch(`https://api.the-odds-api.com/v4/sports/${selectedSport}/odds/?regions=eu&markets=h2h&apiKey=${API_KEY}`)
+      const encoded = encodeURIComponent(BASE_URL);
+      fetch(`https://api.allorigins.win/get?url=${encoded}`)
         .then(res => res.json())
-        .then(data => {
+        .then(wrapped => {
+          const data = JSON.parse(wrapped.contents);
           let html = "";
+
           data.forEach(match => {
             const teams = match.teams.join(" vs ");
             const outcomes = match.bookmakers[0]?.markets[0]?.outcomes || [];
@@ -93,10 +89,11 @@
             });
             html += "</div>";
           });
+
           document.getElementById("results").innerHTML = html;
         })
         .catch(err => {
-          document.getElementById("results").innerHTML = "❌ خطا در دریافت داده‌ها یا اتمام سقف API.";
+          document.getElementById("results").innerHTML = "❌ خطا در اتصال به API از طریق پروکسی.";
         });
     }
   </script>
